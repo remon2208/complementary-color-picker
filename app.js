@@ -21,8 +21,8 @@
   const fileInput = $('file');
   const sampleSize = $('sample-size');
   const statusEl = $('status');
-  const resultsEl = $('results');
-  const resultsEmpty = $('results-empty');
+  const app = $('app');
+  const stageWrap = $('stage-wrap');
   const valuesEl = $('values');
   const chipsEl = $('chips');
   const wheelEl = $('wheel');
@@ -119,78 +119,25 @@
     let text = `${label}，${w} × ${h} 像素`;
     if (scale < 1) text += `（太大了，已縮小為 ${canvas.width} × ${canvas.height} 來取色）`;
     statusEl.textContent = text;
+    statusEl.title = text;
+    fitCanvas();
   }
 
-  // 範例圖：用 canvas 畫一張夕陽海景，裡面有藍、紫、橘、黃、紅、綠等顏色
-  function drawSample() {
-    const w = 1200, h = 800, horizon = 496;
-    const off = document.createElement('canvas');
-    off.width = w; off.height = h;
-    const g = off.getContext('2d');
-
-    const sky = g.createLinearGradient(0, 0, 0, horizon);
-    sky.addColorStop(0, '#1C2B6E');
-    sky.addColorStop(0.42, '#6E3D8C');
-    sky.addColorStop(0.78, '#EE6F58');
-    sky.addColorStop(1, '#FFC36A');
-    g.fillStyle = sky;
-    g.fillRect(0, 0, w, horizon);
-
-    g.fillStyle = '#FFD47C';
-    g.beginPath();
-    g.arc(744, 440, 86, 0, Math.PI * 2);
-    g.fill();
-
-    const poly = (color, pts) => {
-      g.fillStyle = color;
-      g.beginPath();
-      pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
-      g.closePath();
-      g.fill();
-    };
-
-    poly('#7B4F8F', [[0, 400], [110, 350], [230, 392], [380, 318], [520, 404], [640, 470], [760, 476],
-      [880, 410], [1010, 352], [1120, 396], [1200, 372], [1200, horizon], [0, horizon]]);
-    poly('#4A3366', [[0, 452], [160, 428], [300, 470], [420, 456], [560, horizon], [0, horizon]]);
-    poly('#4A3366', [[900, horizon], [1040, 448], [1200, 436], [1200, horizon]]);
-
-    const sea = g.createLinearGradient(0, horizon, 0, h);
-    sea.addColorStop(0, '#3C3F7F');
-    sea.addColorStop(1, '#131A40');
-    g.fillStyle = sea;
-    g.fillRect(0, horizon, w, h - horizon);
-
-    for (let i = 0; i < 12; i++) {
-      const half = 120 - i * 9;
-      g.fillStyle = `rgba(255, 206, 120, ${0.8 - i * 0.06})`;
-      g.fillRect(744 - half, 506 + i * 16, half * 2, 5);
-    }
-
-    g.fillStyle = '#2F6E4E';
-    g.beginPath();
-    g.moveTo(0, 690);
-    g.quadraticCurveTo(160, 650, 330, 720);
-    g.quadraticCurveTo(450, 770, 560, h);
-    g.lineTo(0, h);
-    g.closePath();
-    g.fill();
-
-    poly('#2A2230', [[290, 590], [450, 590], [430, 612], [310, 612]]);
-    g.fillStyle = '#2A2230';
-    g.fillRect(358, 470, 4, 120);
-    poly('#D9412F', [[366, 478], [366, 584], [440, 584]]);
-    poly('#F2E8D8', [[354, 492], [354, 584], [300, 584]]);
-
-    return off;
+  // 依照圖片區的可用空間決定畫布的顯示尺寸（保持比例，整張圖一定看得到）
+  function fitCanvas() {
+    if (!state.hasImage) return;
+    const cs = getComputedStyle(stageWrap);
+    const availW = stageWrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const availH = stageWrap.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    if (availW <= 0 || availH <= 0) return;
+    const s = Math.min(availW / canvas.width, availH / canvas.height);
+    canvas.style.width = `${Math.max(1, Math.floor(canvas.width * s))}px`;
+    canvas.style.height = `${Math.max(1, Math.floor(canvas.height * s))}px`;
+    // 小圖放大時保留像素邊界，方便看清楚每一格的顏色
+    canvas.style.imageRendering = s > 1.5 ? 'pixelated' : 'auto';
   }
 
-  // 載入範例圖並先在紅色船帆上取一次色，讓畫面一打開就有結果可看
-  function loadSample(remember) {
-    const off = drawSample();
-    showImage(off, off.width, off.height, '範例圖');
-    pickAt({ x: 391, y: 552 });
-    if (remember) commitHistory();
-  }
+  new ResizeObserver(fitCanvas).observe(stageWrap);
 
   /* ================= 取色 ================= */
 
@@ -389,13 +336,8 @@
 
   function render() {
     const rgb = state.color;
-    if (!rgb) {
-      resultsEl.hidden = true;
-      resultsEmpty.hidden = false;
-      return;
-    }
-    resultsEl.hidden = false;
-    resultsEmpty.hidden = true;
+    app.dataset.hasColor = String(Boolean(rgb));
+    if (!rgb) return;
 
     const hex = CM.rgbToHex(rgb);
     const hsl = CM.rgbToHsl(rgb);
@@ -409,6 +351,7 @@
 
     renderValues(rgb, hex, hsl);
     achromaticNote.hidden = !achromatic;
+    $('wheel-hint').hidden = achromatic;
 
     const comps = ALGORITHMS.map((a) => {
       const c = a.fn(rgb);
@@ -452,15 +395,13 @@
     valuesEl.replaceChildren(...nodes);
   }
 
-  // 手機版圖片下方的迷你色條：取樣色 + 四個互補色
+  // 小螢幕圖片下方的迷你色條：取樣色 + 四個互補色
   function renderQuick(hex, comps) {
-    const quick = $('quick');
-    quick.replaceChildren(...[hex, ...comps.map((c) => c.hex)].map((h) => {
+    $('quick').replaceChildren(...[hex, ...comps.map((c) => c.hex)].map((h) => {
       const s = document.createElement('span');
       s.style.background = h;
       return s;
     }));
-    quick.hidden = false;
   }
 
   function renderChips(comps, achromatic) {
@@ -498,9 +439,14 @@
 
       const desc = document.createElement('span');
       desc.className = 'chip-desc';
-      desc.textContent = c.clipped ? `${c.desc}這個顏色超出螢幕能顯示的範圍，已降低彩度。` : c.desc;
+      desc.textContent = c.clipped ? `${c.desc}已降低彩度以符合螢幕色域。` : c.desc;
 
-      label.append(name, code, meta, desc);
+      const head = document.createElement('div');
+      head.className = 'chip-head';
+      head.append(name, meta);
+
+      label.append(head, code, desc);
+      label.title = desc.textContent; // 極小的螢幕上說明可能被截斷，滑過仍可看到全文
       chip.append(swatch, label);
       return chip;
     });
@@ -765,7 +711,34 @@
     fileInput.value = '';
   });
 
-  $('sample-btn').addEventListener('click', () => loadSample(true));
+  /* ================= 小螢幕的分頁 ================= */
+
+  const tabButtons = Array.from(document.querySelectorAll('.tabs [role="tab"]'));
+
+  function selectTab(key, focus) {
+    app.dataset.tab = key;
+    for (const btn of tabButtons) {
+      const on = btn.dataset.tab === key;
+      btn.setAttribute('aria-selected', String(on));
+      btn.tabIndex = on ? 0 : -1;
+      if (on && focus) btn.focus();
+    }
+  }
+
+  for (const btn of tabButtons) {
+    btn.addEventListener('click', () => selectTab(btn.dataset.tab));
+    btn.addEventListener('keydown', (e) => {
+      const i = tabButtons.indexOf(btn);
+      let next = -1;
+      if (e.key === 'ArrowRight') next = (i + 1) % tabButtons.length;
+      else if (e.key === 'ArrowLeft') next = (i - 1 + tabButtons.length) % tabButtons.length;
+      else if (e.key === 'Home') next = 0;
+      else if (e.key === 'End') next = tabButtons.length - 1;
+      if (next < 0) return;
+      e.preventDefault();
+      selectTab(tabButtons[next].dataset.tab, true);
+    });
+  }
 
   const hasFiles = (e) => e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files');
   let dragDepth = 0;
@@ -800,6 +773,7 @@
 
   /* ================= 啟動 ================= */
 
+  selectTab(app.dataset.tab);
   renderHistory();
-  loadSample(false);
+  render();
 })();

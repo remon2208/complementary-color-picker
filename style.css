@@ -2,6 +2,10 @@
  * 設計原則：介面本身完全不使用有彩度的顏色。
  * 判斷顏色時，周圍的色彩會影響感知（同時對比），所以背景、按鈕、文字都用中性灰，
  * 畫面上唯一的顏色來自圖片和取出來的色塊。色塊做成實體色票的樣子：上面是顏色，下面是白色標籤。
+ *
+ * 版面：整頁固定在一個視窗內，不出現捲軸。
+ * - 大螢幕（寬 ≥ 1200、高 ≥ 600）：左邊圖片，右邊兩欄同時顯示所有結果
+ * - 其他尺寸：結果改用分頁切換；直向螢幕時圖片在上、結果在下
  */
 
 :root {
@@ -44,23 +48,28 @@
 *::before,
 *::after { box-sizing: border-box; }
 
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
 html { -webkit-text-size-adjust: 100%; }
 
 body {
-  margin: 0;
-  min-height: 100vh;
   background: var(--surround);
   color: var(--ink);
   font-family: var(--font);
   font-size: 15px;
-  line-height: 1.6;
+  line-height: 1.55;
   font-variant-numeric: tabular-nums;
 }
 
 h1, h2, p, dl, dd, ol { margin: 0; }
 
 h1 {
-  font-size: 1.35rem;
+  font-size: 1.3rem;
   font-weight: 700;
   line-height: 1.3;
   letter-spacing: 0.02em;
@@ -89,23 +98,36 @@ button, select, input { font: inherit; color: inherit; }
 
 [hidden] { display: none !important; }
 
-/* ---------- 頂部 ---------- */
+/* ---------- 整體框架 ---------- */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100vh;
+  height: 100dvh;
+  padding: 16px 20px 18px;
+  padding-left: max(20px, env(safe-area-inset-left));
+  padding-right: max(20px, env(safe-area-inset-right));
+  padding-bottom: max(18px, env(safe-area-inset-bottom));
+}
 
 .topbar {
+  flex: none;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px 24px;
-  padding: 20px 24px 16px;
+  gap: 16px;
 }
+
+.brand { min-width: 0; }
 
 .brand p {
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
-.actions { display: flex; gap: 8px; }
+.actions { flex: none; display: flex; gap: 8px; }
 
 .btn {
   display: inline-flex;
@@ -116,6 +138,7 @@ button, select, input { font: inherit; color: inherit; }
   border-radius: var(--radius-control);
   background: var(--raised);
   font-weight: 500;
+  white-space: nowrap;
   cursor: pointer;
   user-select: none;
 }
@@ -128,7 +151,7 @@ button, select, input { font: inherit; color: inherit; }
 }
 .btn-primary:hover { background: var(--ink); opacity: 0.88; }
 
-/* 隱藏的 file input 被聚焦時，讓 label 顯示焦點框 */
+/* 隱藏的 file input 被聚焦時，讓按鈕顯示焦點框 */
 .actions:has(#file:focus-visible) .btn-primary {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
@@ -146,29 +169,92 @@ button, select, input { font: inherit; color: inherit; }
 }
 .text-btn:hover { color: var(--ink); }
 
-/* ---------- 版面 ---------- */
+/* ---------- 大螢幕版面 ---------- */
 
-.layout {
+.main {
+  flex: 1;
+  min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 400px;
-  grid-template-rows: auto 1fr;
-  grid-template-areas:
-    "work panel"
-    "history panel";
-  column-gap: 16px;
-  align-items: start;
-  padding: 0 24px 24px;
+  grid-template-columns: minmax(0, 1fr) minmax(680px, 0.8fr);
+  grid-template-areas: "work results";
+  gap: 16px;
 }
 
-.workspace { grid-area: work; min-width: 0; }
-.history { grid-area: history; min-width: 0; }
-.panel { grid-area: panel; }
+.col-work {
+  grid-area: work;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  min-width: 0;
+}
+
+.results {
+  grid-area: results;
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 22px;
+  min-height: 0;
+  padding: 18px;
+  border-radius: var(--radius-panel);
+  background: var(--panel);
+}
+
+.col-mid,
+.col-side {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 0;
+  min-width: 0;
+}
+
+.pane {
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.pane-chips,
+.pane-wheel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.pane-picked,
+.pane-pairing,
+.pane-history { flex: none; }
+
+.pane > h2 { margin-bottom: 10px; }
+
+.tabs { display: none; }
+
+/* 取色之前：結果區顯示說明文字 */
+.pane-empty {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.app[data-has-color="false"] .pane-body { display: none !important; }
+.app[data-has-color="true"] .pane-empty { display: none; }
+
+/* ---------- 圖片區 ---------- */
+
+.workspace {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
 
 .stage-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
   display: grid;
   place-items: center;
-  min-height: 420px;
-  padding: 20px;
+  overflow: hidden;
+  padding: 16px;
   border-radius: var(--radius-panel);
   background-color: var(--checker-a);
   background-image:
@@ -179,24 +265,33 @@ button, select, input { font: inherit; color: inherit; }
 }
 
 .empty {
-  max-width: 22em;
-  color: var(--muted);
+  position: absolute;
+  inset: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px;
+  border: 2px dashed var(--line);
+  border-radius: 8px;
+  background: var(--surround);
   text-align: center;
+  cursor: pointer;
 }
+.empty:hover { border-color: var(--muted); }
+
+.empty-title { font-size: 1.1rem; font-weight: 700; }
+.empty-text { max-width: 26em; color: var(--muted); font-size: 0.9rem; }
 
 .stage {
   position: relative;
-  max-width: 100%;
   line-height: 0;
 }
 
+/* 畫布的顯示尺寸由 app.js 依照可用空間計算 */
 #canvas {
   display: block;
-  max-width: 100%;
-  max-height: calc(100vh - 230px);
-  min-height: 0;
-  width: auto;
-  height: auto;
   cursor: crosshair;
   touch-action: none;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
@@ -213,40 +308,45 @@ button, select, input { font: inherit; color: inherit; }
   pointer-events: none;
 }
 
+.quick { display: none; }
+
 .toolbar {
+  flex: none;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px 16px;
-  padding: 12px 2px;
+  gap: 16px;
+  padding-top: 10px;
 }
 
 .status {
+  flex: 1;
   min-width: 0;
   color: var(--muted);
-  font-size: 0.9rem;
-  overflow-wrap: anywhere;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .field {
+  flex: none;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
 }
 
 .field select {
-  min-height: 36px;
-  padding: 0 10px;
+  min-height: 34px;
+  padding: 0 8px;
   border: 1px solid var(--line);
   border-radius: var(--radius-control);
   background: var(--raised);
 }
 
 /* ---------- 取色紀錄 ---------- */
-
-.history { padding: 8px 2px 0; }
 
 .section-head {
   display: flex;
@@ -256,17 +356,26 @@ button, select, input { font: inherit; color: inherit; }
   margin-bottom: 10px;
 }
 
+.section-head .hint {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .history-list {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
+  overflow: hidden;
   padding: 0;
   list-style: none;
 }
 
+.history-list li { flex: none; }
+
 .history-list button {
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   padding: 0;
   border: 0;
   border-radius: var(--radius-chip);
@@ -274,48 +383,36 @@ button, select, input { font: inherit; color: inherit; }
   cursor: pointer;
 }
 
-.history-empty { color: var(--muted); font-size: 0.85rem; }
+.history-empty { color: var(--muted); font-size: 0.85rem; line-height: 30px; }
 
-/* ---------- 右側結果 ---------- */
-
-.panel {
-  position: sticky;
-  top: 16px;
-  max-height: calc(100vh - 32px);
-  overflow-y: auto;
-  padding: 18px;
-  border-radius: var(--radius-panel);
-  background: var(--panel);
-}
-
-.results-empty {
-  padding: 48px 8px;
+.privacy {
+  margin-top: 8px;
   color: var(--muted);
-  text-align: center;
+  font-size: 0.78rem;
 }
 
-.block { margin-top: 22px; }
-.block > h2 { margin-bottom: 10px; }
+/* ---------- 結果 ---------- */
 
 .hint {
   color: var(--muted);
   font-size: 0.8rem;
   line-height: 1.5;
 }
-.block > .hint { margin-top: 6px; }
 
 .note {
-  margin-top: 16px;
-  padding: 10px 12px;
+  margin-top: 12px;
+  padding: 8px 10px;
   border-left: 3px solid var(--muted);
   background: var(--raised);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
 }
 
 /* 色票 */
 .chip {
   display: flex;
   flex-direction: column;
+  min-height: 0;
   overflow: hidden;
   border-radius: var(--radius-chip);
   background: var(--paper);
@@ -326,18 +423,27 @@ button, select, input { font: inherit; color: inherit; }
 .chip-swatch {
   display: block;
   width: 100%;
-  aspect-ratio: 3 / 2;
   border: 0;
   padding: 0;
 }
 button.chip-swatch { cursor: pointer; }
 
 .chip-label {
+  flex: none;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 1px;
-  padding: 7px 10px 10px;
+  min-width: 0;
+  padding: 7px 10px 9px;
+}
+
+.chip-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
 }
 
 .chip-name {
@@ -346,12 +452,19 @@ button.chip-swatch { cursor: pointer; }
   line-height: 1.35;
 }
 
+.chip-meta {
+  flex: none;
+  color: var(--paper-muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
 .chip-code {
   padding: 0;
   border: 0;
   background: none;
   color: inherit;
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   font-weight: 700;
   font-stretch: 78%;
   letter-spacing: 0.02em;
@@ -361,44 +474,30 @@ button.chip-swatch { cursor: pointer; }
 .chip-code:hover { text-decoration: underline; text-underline-offset: 3px; }
 .chip-code:focus-visible { outline-color: var(--paper-ink); }
 
-.chip-meta {
-  color: var(--paper-muted);
-  font-size: 0.75rem;
-  line-height: 1.45;
-}
-
 .chip-desc {
-  margin-top: 4px;
+  margin-top: 3px;
   color: var(--paper-muted);
-  font-size: 0.75rem;
-  line-height: 1.45;
+  font-size: 0.72rem;
+  line-height: 1.4;
 }
 
-.chips {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.chips .chip[data-active="true"] {
-  outline: 2px solid var(--ink);
-  outline-offset: 3px;
-}
-
+/* 取樣顏色 */
 .picked {
   display: grid;
-  grid-template-columns: 132px minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 14px;
   align-items: start;
 }
 
 .chip-picked .chip-swatch { aspect-ratio: 1 / 1; }
+.chip-picked .chip-code { font-size: 1.05rem; }
 
 .values {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 4px 12px;
-  font-size: 0.85rem;
+  gap: 3px 12px;
+  font-size: 0.82rem;
+  line-height: 1.45;
 }
 
 .values dt {
@@ -418,12 +517,80 @@ button.chip-swatch { cursor: pointer; }
 }
 .values dd button:hover { text-decoration: underline; text-underline-offset: 3px; }
 
+/* 互補色：空間夠時排成 2 × 2 色票，高度不夠時改成四列 */
+.pane-chips { container: chips / size; }
+
+.chips {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.chips .chip-swatch {
+  flex: 1;
+  min-height: 24px;
+}
+
+.chips .chip[data-active="true"] {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+@container chips (max-height: 360px) {
+  .chips {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .chips .chip {
+    display: grid;
+    grid-template-columns: clamp(48px, 18%, 80px) minmax(0, 1fr);
+  }
+  .chips .chip-swatch { height: 100%; min-height: 0; }
+  .chips .chip-label {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "head code" "desc desc";
+    align-content: center;
+    column-gap: 10px;
+    row-gap: 0;
+    padding: 2px 10px;
+  }
+  .chips .chip-head { grid-area: head; justify-content: flex-start; align-self: center; }
+  .chips .chip-code { grid-area: code; align-self: center; font-size: 1rem; line-height: 1.1; }
+  .chips .chip-desc {
+    grid-area: desc;
+    margin-top: 1px;
+    font-size: 0.7rem;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+}
+
 /* 色相環 */
+.wheel-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* 寬度填滿，高度依比例；空間不夠時才縮小 */
 .wheel {
   display: block;
+  flex: 0 1 auto;
+  min-height: 0;
   width: 100%;
-  max-width: 340px;
-  margin: 0 auto;
+  height: auto;
+  aspect-ratio: 320 / 244;
   overflow: visible;
 }
 .wheel-line { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
@@ -434,6 +601,9 @@ button.chip-swatch { cursor: pointer; }
 .wheel-center { fill: var(--ink); font-size: 22px; font-weight: 700; font-stretch: 78%; }
 .wheel-center-sub { fill: var(--muted); font-size: 10px; }
 
+.wheel-body .hint,
+.wheel-body .note { flex: none; margin: 0; }
+
 /* 搭配預覽 */
 .pair {
   display: grid;
@@ -441,29 +611,31 @@ button.chip-swatch { cursor: pointer; }
   gap: 10px;
 }
 
-.pair figure { margin: 0; }
+.pair figure { margin: 0; min-width: 0; }
 
 .pair-block {
   display: grid;
   place-items: center;
-  height: 96px;
+  height: clamp(60px, 11vh, 104px);
   border-radius: var(--radius-chip);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.2);
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   font-weight: 700;
 }
 
 .pair figcaption {
   margin-top: 4px;
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
 }
 
 .contrast {
-  margin-top: 10px;
-  font-size: 0.85rem;
+  margin-top: 8px;
+  font-size: 0.8rem;
+  line-height: 1.5;
 }
-.contrast strong { font-size: 1rem; font-stretch: 85%; }
+.contrast strong { font-size: 0.95rem; font-stretch: 85%; }
 
 /* ---------- 放大鏡、拖放、提示 ---------- */
 
@@ -532,48 +704,153 @@ button.chip-swatch { cursor: pointer; }
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
-.footer {
-  padding: 0 24px 28px;
-  color: var(--muted);
-  font-size: 0.8rem;
-}
+/* ---------- 小螢幕：結果改用分頁 ---------- */
 
-/* ---------- 窄螢幕 ---------- */
-
-/* 手機版：圖片下方的迷你色條，點了就能看到結果，不用先往下捲 */
-.quick { display: none; }
-
-@media (max-width: 900px) {
-  .layout {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto;
-    grid-template-areas: "work" "panel" "history";
+@media (max-width: 1199px), (max-height: 599px) {
+  .main {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      "work tabs"
+      "work pane";
+    gap: 10px 14px;
   }
-  .panel { position: static; max-height: none; overflow: visible; }
-  .history { padding-top: 20px; }
-  #canvas { max-height: 60vh; }
 
-  .quick:not([hidden]) {
+  /* 讓各分頁直接成為 .main 的格子 */
+  .col-work,
+  .results,
+  .col-mid,
+  .col-side { display: contents; }
+
+  .workspace { grid-area: work; }
+
+  .tabs {
+    grid-area: tabs;
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: var(--radius-control);
+    background: var(--panel);
+  }
+
+  .tabs button {
+    flex: 1;
+    min-width: 0;
+    min-height: 34px;
+    padding: 0 4px;
+    border: 0;
+    border-radius: 4px;
+    background: none;
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .tabs button:hover { color: var(--ink); }
+  .tabs button[aria-selected="true"] {
+    background: var(--raised);
+    color: var(--ink);
+    font-weight: 700;
+  }
+
+  .pane {
+    grid-area: pane;
+    display: none;
+    padding: 14px;
+    border-radius: var(--radius-panel);
+    background: var(--panel);
+  }
+
+  .app[data-tab="picked"] .pane-picked,
+  .app[data-tab="chips"] .pane-chips,
+  .app[data-tab="wheel"] .pane-wheel,
+  .app[data-tab="pairing"] .pane-pairing,
+  .app[data-tab="history"] .pane-history {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 標題已經寫在分頁上，不重複顯示 */
+  .pane > h2,
+  .pane .section-head h2 {
+    position: absolute;
+    width: 1px; height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .pane-chips .section-head { margin-bottom: 8px; }
+  .pane-history .section-head { margin-bottom: 8px; }
+
+  .history-list { flex-wrap: wrap; }
+  .history-list button { width: 34px; height: 34px; }
+
+  .pair-block { height: clamp(64px, 16vh, 120px); }
+
+  /* 圖片下方的迷你色條，不用切分頁就能看到取樣色和互補色 */
+  .app[data-has-color="true"] .quick {
     display: grid;
     grid-template-columns: 1.4fr repeat(4, 1fr);
     gap: 4px;
-    margin-top: 10px;
+    margin-top: 8px;
   }
   .quick span {
-    height: 30px;
+    height: 26px;
     border-radius: var(--radius-chip);
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.2);
   }
 }
 
-@media (max-width: 520px) {
-  .topbar { padding: 16px 16px 12px; }
-  .layout { padding: 0 16px 16px; }
-  .footer { padding: 0 16px 24px; }
-  .stage-wrap { min-height: 260px; padding: 12px; }
-  .panel { padding: 14px; }
-  .picked { grid-template-columns: 108px minmax(0, 1fr); gap: 12px; }
-  .chips { gap: 10px; }
+/* 直向的手機、平板：圖片在上、結果在下 */
+@media (max-width: 699px), (orientation: portrait) and (max-width: 1199px) {
+  .app {
+    gap: 10px;
+    padding-top: 12px;
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  h1 { font-size: 1.1rem; }
+  .brand p { font-size: 0.78rem; line-height: 1.45; }
+  .btn { min-height: 36px; padding: 0 12px; font-size: 0.9rem; }
+
+  .main {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto minmax(0, 1.25fr);
+    grid-template-areas:
+      "work"
+      "tabs"
+      "pane";
+    gap: 8px;
+  }
+
+  .stage-wrap { padding: 8px; }
+  .empty { inset: 8px; }
+  .empty-title { font-size: 1rem; }
+  .empty-text { font-size: 0.82rem; }
+  .toolbar { gap: 10px; padding-top: 8px; }
+  .status, .field { font-size: 0.78rem; }
+  .field select { min-height: 30px; }
+
+  .pane { padding: 8px 10px; }
+  .pane-chips .section-head { margin-bottom: 6px; }
+  .chips .chip-desc { font-size: 0.68rem; line-height: 1.3; }
+  .chips { gap: 5px; }
+  .picked { grid-template-columns: 88px minmax(0, 1fr); gap: 12px; }
+  .values { font-size: 0.78rem; }
+}
+
+/* 很矮的螢幕（例如手機橫放）：收起副標題，讓結果有足夠空間 */
+@media (max-height: 459px) {
+  .app { gap: 8px; padding-top: 10px; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+  .brand p { display: none; }
+  .btn { min-height: 34px; }
+  .toolbar { padding-top: 6px; }
+  .pane { padding: 8px 10px; }
+  .pane-chips .section-head { margin-bottom: 4px; }
+  .pair-block { height: 56px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
