@@ -5,20 +5,42 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>互補色取色器</title>
   <meta name="description" content="上傳圖片，點選任一點取色，用 HSL、OKLCH、RGB 反相與 RYB 色輪四種方法算出互補色。">
+  <link rel="alternate" hreflang="zh-Hant" href="?lang=zh-Hant">
+  <link rel="alternate" hreflang="zh-Hans" href="?lang=zh-Hans">
+  <link rel="alternate" hreflang="en" href="?lang=en">
+  <link rel="alternate" hreflang="ja" href="?lang=ja">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="app" id="app" data-has-color="false" data-tab="chips">
     <header class="topbar">
       <div class="brand">
-        <h1>互補色取色器</h1>
-        <p>點圖片上的任何一點，看它在四種色彩模型裡的互補色。</p>
+        <h1 data-i18n="app.title">互補色取色器</h1>
+        <p data-i18n="app.subtitle">點圖片上的任何一點，看它在四種色彩模型裡的互補色。</p>
       </div>
       <div class="actions">
-        <label class="btn btn-primary" for="file">選擇圖片</label>
+        <label class="lang">
+          <span class="visually-hidden" data-i18n="lang.label">語言</span>
+          <svg class="lang-icon" viewBox="0 0 16 16" aria-hidden="true">
+            <circle cx="8" cy="8" r="6.25"/>
+            <path d="M1.75 8h12.5M8 1.75c1.9 1.7 2.85 3.78 2.85 6.25S9.9 12.55 8 14.25M8 1.75C6.1 3.45 5.15 5.53 5.15 8S6.1 12.55 8 14.25"/>
+          </svg>
+          <span class="lang-current" aria-hidden="true">
+            <span class="lang-long" id="lang-long">繁體中文</span>
+            <span class="lang-short" id="lang-short">繁中</span>
+          </span>
+          <svg class="lang-caret" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.75 5 6.75 8 3.75"/></svg>
+          <select id="lang">
+            <option value="zh-Hant" lang="zh-Hant">繁體中文</option>
+            <option value="zh-Hans" lang="zh-Hans">简体中文</option>
+            <option value="en" lang="en">English</option>
+            <option value="ja" lang="ja">日本語</option>
+          </select>
+        </label>
+        <label class="btn btn-primary" for="file" data-i18n="action.chooseImage">選擇圖片</label>
         <input id="file" type="file" accept="image/*" class="visually-hidden">
       </div>
     </header>
@@ -26,14 +48,14 @@
     <main class="main">
       <!-- 左欄：圖片、取樣設定、取色紀錄 -->
       <div class="col col-work">
-        <section class="workspace" aria-label="圖片">
+        <section class="workspace" data-i18n-aria="workspace.aria" aria-label="圖片">
           <div class="stage-wrap" id="stage-wrap">
             <label class="empty" id="empty" for="file">
-              <span class="empty-title">選擇一張圖片開始取色</span>
-              <span class="empty-text">點這裡選擇圖片，或把圖片拖進來，也可以按 Ctrl+V（Mac 是 ⌘V）直接貼上</span>
+              <span class="empty-title" data-i18n="empty.title">選擇一張圖片開始取色</span>
+              <span class="empty-text" data-i18n="empty.text">點這裡選擇圖片，或把圖片拖進來，也可以按 Ctrl+V（Mac 是 ⌘V）直接貼上</span>
             </label>
             <div class="stage" id="stage" hidden>
-              <canvas id="canvas" tabindex="0"
+              <canvas id="canvas" tabindex="0" data-i18n-aria="canvas.aria"
                 aria-label="圖片。點一下或拖曳來取色；聚焦後也可以用方向鍵移動取色點，按住 Shift 一次移動 10 像素。"></canvas>
               <div class="marker" id="marker" hidden></div>
             </div>
@@ -42,14 +64,15 @@
           <div class="quick" id="quick" aria-hidden="true"></div>
 
           <div class="toolbar">
+            <!-- 這裡的文字由 app.js 依照目前的圖片和語言更新 -->
             <p class="status" id="status">還沒有載入圖片</p>
             <label class="field">
-              <span>取樣範圍</span>
+              <span data-i18n="sample.label">取樣範圍</span>
               <select id="sample-size">
-                <option value="1">單一像素</option>
-                <option value="3" selected>3 × 3 平均</option>
-                <option value="5">5 × 5 平均</option>
-                <option value="9">9 × 9 平均</option>
+                <option value="1" data-i18n="sample.1">單一像素</option>
+                <option value="3" data-i18n="sample.3" selected>3 × 3 平均</option>
+                <option value="5" data-i18n="sample.5">5 × 5 平均</option>
+                <option value="9" data-i18n="sample.9">9 × 9 平均</option>
               </select>
             </label>
           </div>
@@ -57,36 +80,36 @@
 
         <section class="pane pane-history" id="pane-history" data-pane="history" aria-labelledby="history-title">
           <div class="section-head">
-            <h2 id="history-title">取色紀錄</h2>
-            <button class="text-btn" id="clear-history" type="button">清除紀錄</button>
+            <h2 id="history-title" data-i18n="history.title">取色紀錄</h2>
+            <button class="text-btn" id="clear-history" type="button" data-i18n="history.clear">清除紀錄</button>
           </div>
           <ol class="history-list" id="history"></ol>
-          <p class="history-empty" id="history-empty">取過的顏色會留在這裡，點一下就能叫回來。</p>
-          <p class="privacy">所有運算都在你的瀏覽器裡進行，圖片不會上傳到任何地方。</p>
+          <p class="history-empty" id="history-empty" data-i18n="history.empty">取過的顏色會留在這裡，點一下就能叫回來。</p>
+          <p class="privacy" data-i18n="privacy">所有運算都在你的瀏覽器裡進行，圖片不會上傳到任何地方。</p>
         </section>
       </div>
 
       <!-- 小螢幕用的分頁 -->
-      <nav class="tabs" role="tablist" aria-label="取色結果">
-        <button type="button" role="tab" data-tab="picked" aria-controls="pane-picked">取樣</button>
-        <button type="button" role="tab" data-tab="chips" aria-controls="pane-chips">互補色</button>
-        <button type="button" role="tab" data-tab="wheel" aria-controls="pane-wheel">色相環</button>
-        <button type="button" role="tab" data-tab="pairing" aria-controls="pane-pairing">搭配</button>
-        <button type="button" role="tab" data-tab="history" aria-controls="pane-history">紀錄</button>
+      <nav class="tabs" role="tablist" data-i18n-aria="tabs.aria" aria-label="取色結果">
+        <button type="button" role="tab" data-tab="picked" aria-controls="pane-picked" data-i18n="tab.picked">取樣</button>
+        <button type="button" role="tab" data-tab="chips" aria-controls="pane-chips" data-i18n="tab.chips">互補色</button>
+        <button type="button" role="tab" data-tab="wheel" aria-controls="pane-wheel" data-i18n="tab.wheel">色相環</button>
+        <button type="button" role="tab" data-tab="pairing" aria-controls="pane-pairing" data-i18n="tab.pairing">搭配</button>
+        <button type="button" role="tab" data-tab="history" aria-controls="pane-history" data-i18n="tab.history">紀錄</button>
       </nav>
 
       <!-- 右側結果：大螢幕分兩欄同時顯示 -->
-      <div class="results" aria-label="取色結果">
+      <div class="results" data-i18n-aria="results.aria" aria-label="取色結果">
         <div class="col col-mid">
-          <section class="pane pane-picked" id="pane-picked" data-pane="picked" aria-label="取樣顏色">
-            <p class="pane-empty">點一下圖片，取到的顏色和色碼會顯示在這裡。</p>
+          <section class="pane pane-picked" id="pane-picked" data-pane="picked" data-i18n-aria="picked.aria" aria-label="取樣顏色">
+            <p class="pane-empty" data-i18n="picked.empty">點一下圖片，取到的顏色和色碼會顯示在這裡。</p>
             <div class="pane-body">
               <div class="picked">
                 <div class="chip chip-picked">
                   <div class="chip-swatch" id="picked-swatch"></div>
                   <div class="chip-label">
-                    <span class="chip-name">取樣顏色</span>
-                    <button class="chip-code" id="picked-hex" type="button" title="複製色碼"></button>
+                    <span class="chip-name" data-i18n="picked.name">取樣顏色</span>
+                    <button class="chip-code" id="picked-hex" type="button" data-i18n-title="copy.code" title="複製色碼"></button>
                   </div>
                 </div>
                 <dl class="values" id="values"></dl>
@@ -96,31 +119,30 @@
 
           <section class="pane pane-chips" id="pane-chips" data-pane="chips" aria-labelledby="chips-title">
             <div class="section-head">
-              <h2 id="chips-title">互補色</h2>
-              <span class="hint">點色塊切換搭配預覽，點色碼複製</span>
+              <h2 id="chips-title" data-i18n="chips.title">互補色</h2>
+              <span class="hint" data-i18n="chips.hint">點色塊切換搭配預覽，點色碼複製</span>
             </div>
-            <p class="pane-empty">取色後，四種方法算出的互補色會顯示在這裡。</p>
+            <p class="pane-empty" data-i18n="chips.empty">取色後，四種方法算出的互補色會顯示在這裡。</p>
             <div class="pane-body chips" id="chips"></div>
           </section>
         </div>
 
         <div class="col col-side">
           <section class="pane pane-wheel" id="pane-wheel" data-pane="wheel" aria-labelledby="wheel-title">
-            <h2 id="wheel-title">色相位置</h2>
-            <p class="pane-empty">取色後，這裡會標出取樣顏色和各互補色在色相環上的位置。</p>
+            <h2 id="wheel-title" data-i18n="wheel.title">色相位置</h2>
+            <p class="pane-empty" data-i18n="wheel.empty">取色後，這裡會標出取樣顏色和各互補色在色相環上的位置。</p>
             <div class="pane-body wheel-body">
-              <svg class="wheel" id="wheel" viewBox="-160 -122 320 244" role="img"
+              <svg class="wheel" id="wheel" viewBox="-160 -122 320 244" role="img" data-i18n-aria="wheel.aria"
                 aria-label="色相環，標出取樣顏色與各種互補色的位置"></svg>
-              <p class="hint" id="wheel-hint">色相環以 HSL 色相繪製。RGB 反相的色相與 HSL 相同，只差在亮度；OKLCH 和 RYB 則會落在不同的位置。</p>
-              <p class="note" id="achromatic-note" hidden>
-                這是灰階顏色，沒有色相，所以沒有真正的互補色。HSL、OKLCH 和 RYB 都會得到幾乎同一個灰，RGB 反相則會得到明暗相反的灰。
-              </p>
+              <p class="hint" id="wheel-hint" data-i18n="wheel.hint">色相環以 HSL 色相繪製。RGB 反相的色相與 HSL 相同，只差在亮度；OKLCH 和 RYB 則會落在不同的位置。</p>
+              <p class="note" id="achromatic-note" data-i18n="achromatic.note" hidden>這是灰階顏色，沒有色相，所以沒有真正的互補色。HSL、OKLCH 和 RYB 都會得到幾乎同一個灰，RGB 反相則會得到明暗相反的灰。</p>
             </div>
           </section>
 
           <section class="pane pane-pairing" id="pane-pairing" data-pane="pairing" aria-labelledby="pairing-title">
+            <!-- 標題由 app.js 依照選到的演算法更新 -->
             <h2 id="pairing-title">搭配預覽</h2>
-            <p class="pane-empty">取色後，這裡會預覽兩個顏色放在一起的樣子和文字對比度。</p>
+            <p class="pane-empty" data-i18n="pairing.empty">取色後，這裡會預覽兩個顏色放在一起的樣子和文字對比度。</p>
             <div class="pane-body" id="pairing"></div>
           </section>
         </div>
@@ -132,10 +154,11 @@
     <canvas id="loupe-canvas"></canvas>
     <span class="loupe-hex" id="loupe-hex"></span>
   </div>
-  <div class="drop-overlay" id="drop-overlay" hidden><p>放開即可載入圖片</p></div>
+  <div class="drop-overlay" id="drop-overlay" hidden><p data-i18n="drop.overlay">放開即可載入圖片</p></div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="color.js"></script>
+  <script src="i18n.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

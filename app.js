@@ -1,6 +1,6 @@
 /*
  * app.js — 介面：載入圖片、點選取色、顯示互補色
- * 依賴 color.js 提供的全域物件 ColorMath。
+ * 依賴 color.js 提供的 ColorMath 和 i18n.js 提供的 I18n。
  */
 (function () {
   'use strict';
@@ -8,6 +8,7 @@
   const CM = window.ColorMath;
   const $ = (id) => document.getElementById(id);
   const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+  const t = (key, params) => window.I18n.t(key, params);
 
   const canvas = $('canvas');
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -40,35 +41,12 @@
   const HISTORY_KEY = 'complement-picker:history';
   const HISTORY_MAX = 18;
 
+  // 名稱、簡稱、說明放在 i18n.js 的 alg.<key>.name / short / desc
   const ALGORITHMS = [
-    {
-      key: 'hsl',
-      name: 'HSL 色相旋轉',
-      short: 'HSL',
-      fn: CM.complementHsl,
-      desc: '色相轉 180°，飽和度與亮度不變。網頁設計最常用。',
-    },
-    {
-      key: 'oklch',
-      name: 'OKLCH',
-      short: 'OKLCH',
-      fn: CM.complementOklch,
-      desc: '在感知均勻的色彩空間取對面，人眼看起來最平衡。',
-    },
-    {
-      key: 'invert',
-      name: 'RGB 反相',
-      short: '反相',
-      fn: CM.complementInvert,
-      desc: '255 減去每個通道。色相和 HSL 相同，但亮度也反過來。',
-    },
-    {
-      key: 'ryb',
-      name: 'RYB 美術色輪',
-      short: 'RYB',
-      fn: CM.complementRyb,
-      desc: '繪畫用的紅黃藍色輪：紅對綠、黃對紫、藍對橘（近似換算）。',
-    },
+    { key: 'hsl', fn: CM.complementHsl },
+    { key: 'oklch', fn: CM.complementOklch },
+    { key: 'invert', fn: CM.complementInvert },
+    { key: 'ryb', fn: CM.complementRyb },
   ];
 
   const state = {
@@ -76,15 +54,17 @@
     point: null,     // 取樣點在原圖上的像素座標 { x, y }
     color: null,     // 取樣的顏色 { r, g, b }
     selected: 'hsl', // 搭配預覽使用的演算法
+    image: null,     // 目前圖片的資訊，用來在切換語言時重寫狀態列
     history: loadHistory(),
   };
 
   /* ================= 載入圖片 ================= */
 
-  function loadFile(file, label) {
+  // labelKey：沒有檔名時（例如貼上的圖片）用來顯示的翻譯 key
+  function loadFile(file, labelKey) {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      showToast('這不是圖片檔，請選擇 PNG、JPG、WebP 或 GIF');
+      showToast(t('toast.notImage'));
       return;
     }
     const url = URL.createObjectURL(file);
@@ -93,11 +73,11 @@
       URL.revokeObjectURL(url);
       const w = img.naturalWidth || 1024;
       const h = img.naturalHeight || 1024;
-      showImage(img, w, h, label || file.name);
+      showImage(img, w, h, labelKey ? { key: labelKey } : { name: file.name });
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);
-      showToast('瀏覽器無法讀取這個格式，請轉成 PNG 或 JPG 再試一次');
+      showToast(t('toast.unreadable'));
     };
     img.src = url;
   }
@@ -116,11 +96,20 @@
     empty.hidden = true;
     stage.hidden = false;
 
-    let text = `${label}，${w} × ${h} 像素`;
-    if (scale < 1) text += `（太大了，已縮小為 ${canvas.width} × ${canvas.height} 來取色）`;
-    statusEl.textContent = text;
-    statusEl.title = text;
+    state.image = { ...label, w, h, scaled: scale < 1 };
+    renderStatus();
     fitCanvas();
+  }
+
+  function renderStatus() {
+    const img = state.image;
+    let text = t('status.none');
+    if (img) {
+      text = t('status.loaded', { label: img.key ? t(img.key) : img.name, w: img.w, h: img.h });
+      if (img.scaled) text += t('status.scaled', { w: canvas.width, h: canvas.height });
+    }
+    statusEl.textContent = text;
+    statusEl.title = img ? text : '';
   }
 
   // 依照圖片區的可用空間決定畫布的顯示尺寸（保持比例，整張圖一定看得到）
@@ -173,7 +162,7 @@
     placeMarker(p);
     const rgb = sampleAt(p.x, p.y, Number(sampleSize.value));
     if (!rgb) {
-      showToast('這個位置是透明的，換一個地方試試');
+      showToast(t('toast.transparent'));
       return;
     }
     state.color = rgb;
@@ -307,7 +296,7 @@
     lc.strokeRect(o, o, s * cell, s * cell);
 
     const hovered = sampleAt(p.x, p.y, s);
-    loupeHex.textContent = hovered ? CM.rgbToHex(hovered) : '透明';
+    loupeHex.textContent = hovered ? CM.rgbToHex(hovered) : t('loupe.transparent');
 
     // 滑鼠：放在游標右下；觸控：放在手指上方，避免被手指擋住
     const W = LOUPE_SIZE + 6;
@@ -347,7 +336,7 @@
     const pickedHex = $('picked-hex');
     pickedHex.textContent = hex;
     pickedHex.dataset.copy = hex;
-    pickedHex.setAttribute('aria-label', `複製 ${hex}`);
+    pickedHex.setAttribute('aria-label', t('copy.aria', { hex }));
 
     renderValues(rgb, hex, hsl);
     achromaticNote.hidden = !achromatic;
@@ -356,7 +345,16 @@
     const comps = ALGORITHMS.map((a) => {
       const c = a.fn(rgb);
       const out = { r: c.r, g: c.g, b: c.b };
-      return { ...a, rgb: out, hex: CM.rgbToHex(out), hue: CM.rgbToHsl(out).h, clipped: Boolean(c.clipped) };
+      return {
+        ...a,
+        name: t(`alg.${a.key}.name`),
+        short: t(`alg.${a.key}.short`),
+        desc: t(`alg.${a.key}.desc`),
+        rgb: out,
+        hex: CM.rgbToHex(out),
+        hue: CM.rgbToHsl(out).h,
+        clipped: Boolean(c.clipped),
+      };
     });
 
     renderQuick(hex, comps);
@@ -381,15 +379,15 @@
       btn.type = 'button';
       btn.textContent = value;
       btn.dataset.copy = value;
-      btn.title = '複製';
+      btn.title = t('copy.title');
       dd.appendChild(btn);
       nodes.push(dt, dd);
     }
     if (state.point) {
       const dt = document.createElement('dt');
-      dt.textContent = '位置';
+      dt.textContent = t('values.position');
       const dd = document.createElement('dd');
-      dd.textContent = `x ${state.point.x}，y ${state.point.y}`;
+      dd.textContent = t('values.positionValue', { x: state.point.x, y: state.point.y });
       nodes.push(dt, dd);
     }
     valuesEl.replaceChildren(...nodes);
@@ -416,7 +414,7 @@
       swatch.style.background = c.hex;
       swatch.dataset.select = c.key;
       swatch.setAttribute('aria-pressed', String(c.key === state.selected));
-      swatch.setAttribute('aria-label', `用 ${c.name} 的互補色預覽搭配`);
+      swatch.setAttribute('aria-label', t('chips.select', { name: c.name }));
 
       const label = document.createElement('div');
       label.className = 'chip-label';
@@ -430,16 +428,16 @@
       code.className = 'chip-code';
       code.textContent = c.hex;
       code.dataset.copy = c.hex;
-      code.title = '複製色碼';
-      code.setAttribute('aria-label', `複製 ${c.hex}`);
+      code.title = t('copy.code');
+      code.setAttribute('aria-label', t('copy.aria', { hex: c.hex }));
 
       const meta = document.createElement('span');
       meta.className = 'chip-meta';
-      meta.textContent = achromatic ? '無色相' : `色相 ${Math.round(c.hue) % 360}°`;
+      meta.textContent = achromatic ? t('chips.noHue') : t('chips.hue', { deg: Math.round(c.hue) % 360 });
 
       const desc = document.createElement('span');
       desc.className = 'chip-desc';
-      desc.textContent = c.clipped ? `${c.desc}已降低彩度以符合螢幕色域。` : c.desc;
+      desc.textContent = c.clipped ? c.desc + t('alg.clipped') : c.desc;
 
       const head = document.createElement('div');
       head.className = 'chip-head';
@@ -519,7 +517,7 @@
 
     if (achromatic) {
       nodes.push(svg('text', { class: 'wheel-center', 'text-anchor': 'middle', y: 4 }, '—'));
-      nodes.push(svg('text', { class: 'wheel-center-sub', 'text-anchor': 'middle', y: 22 }, '灰階沒有色相'));
+      nodes.push(svg('text', { class: 'wheel-center-sub', 'text-anchor': 'middle', y: 22 }, t('wheel.noHue')));
       wheelDynamic.replaceChildren(...nodes);
       return;
     }
@@ -539,11 +537,11 @@
       else groups.push({ hue: c.hue, items: [c] });
     }
 
-    const labels = [{ angle: hsl.h, text: '取樣', picked: true }];
+    const labels = [{ angle: hsl.h, text: t('wheel.picked'), picked: true }];
     for (const g of groups) {
       const [x, y] = polar(R_DOT, g.hue);
       nodes.push(svg('circle', { class: 'wheel-dot', cx: f2(x), cy: f2(y), r: 6.5, fill: g.items[0].hex }));
-      labels.push({ angle: g.hue, text: g.items.map((c) => c.short).join('＝') });
+      labels.push({ angle: g.hue, text: g.items.map((c) => c.short).join('=') });
     }
     const [sx, sy] = polar(R_DOT, hsl.h);
     nodes.push(svg('circle', { class: 'wheel-dot-picked', cx: f2(sx), cy: f2(sy), r: 9.5, fill: hex }));
@@ -561,21 +559,21 @@
     }
 
     nodes.push(svg('text', { class: 'wheel-center', 'text-anchor': 'middle', y: 6 }, `${Math.round(hsl.h) % 360}°`));
-    nodes.push(svg('text', { class: 'wheel-center-sub', 'text-anchor': 'middle', y: 22 }, '取樣色相'));
+    nodes.push(svg('text', { class: 'wheel-center-sub', 'text-anchor': 'middle', y: 22 }, t('wheel.pickedHue')));
     wheelDynamic.replaceChildren(...nodes);
   }
 
   /* ---------- 搭配預覽 ---------- */
 
   function contrastVerdict(ratio) {
-    if (ratio >= 7) return '對比充足，可以用在內文（WCAG AAA）。';
-    if (ratio >= 4.5) return '可以用在內文（WCAG AA）。';
-    if (ratio >= 3) return '只適合大字或圖示（WCAG AA 大字標準）。';
-    return '對比不足以當文字，適合用在色塊之間的搭配。';
+    if (ratio >= 7) return t('contrast.aaa');
+    if (ratio >= 4.5) return t('contrast.aa');
+    if (ratio >= 3) return t('contrast.large');
+    return t('contrast.low');
   }
 
   function renderPairing(rgb, hex, comp) {
-    pairingTitle.textContent = `搭配預覽：${comp.name}`;
+    pairingTitle.textContent = t('pairing.titleWith', { name: comp.name });
     const ratio = CM.contrastRatio(rgb, comp.rgb);
 
     const pair = document.createElement('div');
@@ -586,22 +584,24 @@
       block.className = 'pair-block';
       block.style.background = bg;
       block.style.color = fg;
-      block.textContent = '文字 Aa';
+      block.textContent = t('pairing.sample');
       const cap = document.createElement('figcaption');
       cap.textContent = caption;
       fig.append(block, cap);
       return fig;
     };
     pair.append(
-      makeBlock(hex, comp.hex, '取樣色當底、互補色當字'),
-      makeBlock(comp.hex, hex, '互補色當底、取樣色當字'),
+      makeBlock(hex, comp.hex, t('pairing.captionA')),
+      makeBlock(comp.hex, hex, t('pairing.captionB')),
     );
 
     const p = document.createElement('p');
     p.className = 'contrast';
     const strong = document.createElement('strong');
-    strong.textContent = `對比度 ${ratio.toFixed(2)} : 1`;
-    p.append(strong, document.createTextNode(`　${contrastVerdict(ratio)}`));
+    strong.textContent = t('contrast.ratio', { ratio: ratio.toFixed(2) });
+    const verdict = document.createElement('span');
+    verdict.textContent = contrastVerdict(ratio);
+    p.append(strong, verdict);
 
     pairingEl.replaceChildren(pair, p);
   }
@@ -644,7 +644,7 @@
       btn.style.background = hex;
       btn.dataset.restore = hex;
       btn.title = hex;
-      btn.setAttribute('aria-label', `叫回 ${hex}`);
+      btn.setAttribute('aria-label', t('history.restore', { hex }));
       li.appendChild(btn);
       return li;
     }));
@@ -671,7 +671,7 @@
       document.execCommand('copy');
       ta.remove();
     }
-    showToast(`已複製 ${text}`);
+    showToast(t('toast.copied', { text }));
   }
 
   let toastTimer = 0;
@@ -768,12 +768,29 @@
     const item = Array.from(e.clipboardData?.items || []).find((i) => i.type.startsWith('image/'));
     if (!item) return;
     e.preventDefault();
-    loadFile(item.getAsFile(), '貼上的圖片');
+    loadFile(item.getAsFile(), 'status.pasted');
   });
+
+  /* ================= 語言 ================= */
+
+  const langSelect = $('lang');
+
+  function syncLang(code) {
+    const info = window.I18n.info(code);
+    langSelect.value = info.code;
+    $('lang-long').textContent = info.label;
+    $('lang-short').textContent = info.short;
+    // 切換語言時重新產生所有由程式寫入的文字
+    renderStatus();
+    render();
+    renderHistory();
+  }
+
+  langSelect.addEventListener('change', () => window.I18n.setLang(langSelect.value, true));
+  window.I18n.onChange(syncLang);
 
   /* ================= 啟動 ================= */
 
   selectTab(app.dataset.tab);
-  renderHistory();
-  render();
+  syncLang(window.I18n.lang);
 })();
