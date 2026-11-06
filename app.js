@@ -326,7 +326,10 @@
   function render() {
     const rgb = state.color;
     app.dataset.hasColor = String(Boolean(rgb));
-    if (!rgb) return;
+    if (!rgb) {
+      pairingTitle.textContent = t('pairing.title');
+      return;
+    }
 
     const hex = CM.rgbToHex(rgb);
     const hsl = CM.rgbToHsl(rgb);
