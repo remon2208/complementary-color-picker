@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>互補色取色器</title>
+  <meta name="description" content="上傳圖片，點選任一點取色，用 HSL、OKLCH、RGB 反相與 RYB 色輪四種方法算出互補色。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <h1>互補色取色器</h1>
+      <p>點圖片上的任何一點，看它在四種色彩模型裡的互補色。</p>
+    </div>
+    <div class="actions">
+      <label class="btn btn-primary" for="file">選擇圖片</label>
+      <input id="file" type="file" accept="image/*" class="visually-hidden">
+      <button class="btn" id="sample-btn" type="button">載入範例圖</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="workspace" aria-label="圖片">
+      <div class="stage-wrap">
+        <div class="empty" id="empty">
+          <p>把圖片拖到這裡，或按 Ctrl+V（Mac 是 ⌘V）直接貼上</p>
+        </div>
+        <div class="stage" id="stage" hidden>
+          <canvas id="canvas" tabindex="0"
+            aria-label="圖片。點一下或拖曳來取色；聚焦後也可以用方向鍵移動取色點，按住 Shift 一次移動 10 像素。"></canvas>
+          <div class="marker" id="marker" hidden></div>
+        </div>
+      </div>
+
+      <div class="quick" id="quick" hidden aria-hidden="true"></div>
+
+      <div class="toolbar">
+        <p class="status" id="status">還沒有載入圖片</p>
+        <label class="field">
+          <span>取樣範圍</span>
+          <select id="sample-size">
+            <option value="1">單一像素</option>
+            <option value="3" selected>3 × 3 平均</option>
+            <option value="5">5 × 5 平均</option>
+            <option value="9">9 × 9 平均</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="history" aria-labelledby="history-title">
+      <div class="section-head">
+        <h2 id="history-title">取色紀錄</h2>
+        <button class="text-btn" id="clear-history" type="button">清除紀錄</button>
+      </div>
+      <ol class="history-list" id="history"></ol>
+      <p class="history-empty" id="history-empty">取過的顏色會留在這裡，點一下就能叫回來。</p>
+    </section>
+
+    <aside class="panel" aria-label="取色結果">
+      <p class="results-empty" id="results-empty">點一下圖片，結果會出現在這裡。</p>
+
+      <div id="results" hidden>
+        <section class="picked">
+          <div class="chip chip-picked">
+            <div class="chip-swatch" id="picked-swatch"></div>
+            <div class="chip-label">
+              <span class="chip-name">取樣顏色</span>
+              <button class="chip-code" id="picked-hex" type="button" title="複製色碼"></button>
+            </div>
+          </div>
+          <dl class="values" id="values"></dl>
+        </section>
+
+        <p class="note" id="achromatic-note" hidden>
+          這是灰階顏色，沒有色相，所以沒有真正的互補色。HSL、OKLCH 和 RYB 都會得到幾乎同一個灰，RGB 反相則會得到明暗相反的灰。
+        </p>
+
+        <section class="block" aria-labelledby="chips-title">
+          <div class="section-head">
+            <h2 id="chips-title">互補色</h2>
+            <span class="hint">點色塊切換下方的搭配預覽</span>
+          </div>
+          <div class="chips" id="chips"></div>
+        </section>
+
+        <section class="block" aria-labelledby="wheel-title">
+          <h2 id="wheel-title">色相位置</h2>
+          <svg class="wheel" id="wheel" viewBox="-160 -122 320 244" role="img"
+            aria-label="色相環，標出取樣顏色與各種互補色的位置"></svg>
+          <p class="hint">色相環以 HSL 色相繪製。RGB 反相的色相與 HSL 相同，只差在亮度；OKLCH 和 RYB 則會落在不同的位置。</p>
+        </section>
+
+        <section class="block" aria-labelledby="pairing-title">
+          <h2 id="pairing-title">搭配預覽</h2>
+          <div id="pairing"></div>
+        </section>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="footer">
+    <p>所有運算都在你的瀏覽器裡進行，圖片不會上傳到任何地方。</p>
+  </footer>
+
+  <div class="loupe" id="loupe" hidden aria-hidden="true">
+    <canvas id="loupe-canvas"></canvas>
+    <span class="loupe-hex" id="loupe-hex"></span>
+  </div>
+  <div class="drop-overlay" id="drop-overlay" hidden><p>放開即可載入圖片</p></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="color.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
