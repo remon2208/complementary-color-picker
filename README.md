@@ -1,3 +1,10 @@
+<p align="center">
+  <b>繁體中文</b> ｜
+  <a href="README.zh-Hans.md">简体中文</a> ｜
+  <a href="README.en.md">English</a> ｜
+  <a href="README.ja.md">日本語</a>
+</p>
+
 <h1 align="center">互補色取色器</h1>
 
 <p align="center">
@@ -6,27 +13,20 @@
 </p>
 
 <p align="center">
-  <a href="https://remon2208.github.io/complementary-color-picker/">
+  <a href="https://remon2208.github.io/complementary-color-picker/?lang=zh-Hant">
     <img src="https://img.shields.io/badge/%E9%BB%9E%E9%80%99%E8%A3%A1%E6%89%93%E9%96%8B%E7%B6%B2%E9%A0%81-2ea44f?style=for-the-badge" alt="點這裡打開網頁" height="44">
   </a>
 </p>
 
 <p align="center">
-  網址：<a href="https://remon2208.github.io/complementary-color-picker/"><b>https://remon2208.github.io/complementary-color-picker/</b></a>
+  網址：<a href="https://remon2208.github.io/complementary-color-picker/?lang=zh-Hant"><b>https://remon2208.github.io/complementary-color-picker/</b></a>
 </p>
 
 <p align="center">
-  <a href="https://remon2208.github.io/complementary-color-picker/?lang=zh-Hant">繁體中文</a> ｜
-  <a href="https://remon2208.github.io/complementary-color-picker/?lang=zh-Hans">简体中文</a> ｜
-  <a href="https://remon2208.github.io/complementary-color-picker/?lang=en">English</a> ｜
-  <a href="https://remon2208.github.io/complementary-color-picker/?lang=ja">日本語</a>
-</p>
-
-<p align="center">
-  <a href="https://remon2208.github.io/complementary-color-picker/">
+  <a href="https://remon2208.github.io/complementary-color-picker/?lang=zh-Hant">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="docs/screenshot-dark.jpg">
-      <img src="docs/screenshot-light.jpg" alt="互補色取色器的畫面：左邊是圖片，右邊顯示取到的顏色、四種互補色、色相環和搭配預覽" width="900">
+      <source media="(prefers-color-scheme: dark)" srcset="docs/zh-Hant/dark.jpg">
+      <img src="docs/zh-Hant/light.jpg" alt="互補色取色器的畫面：左邊是圖片，右邊顯示取到的顏色、四種互補色、色相環和搭配預覽" width="900">
     </picture>
   </a>
 </p>
@@ -38,7 +38,7 @@
 3. 在圖片上點你想要的顏色，旁邊就會出現它的互補色
 4. 點色碼（例如 `#2FC7D9`）就會複製，可以直接貼到繪圖軟體或網頁程式裡
 
-<img src="docs/screenshot-mobile.jpg" alt="手機上的畫面：圖片在上方，互補色在下方，用分頁切換" width="260" align="right">
+<img src="docs/zh-Hant/mobile.jpg" alt="手機上的畫面：圖片在上方，互補色在下方，用分頁切換" width="260" align="right">
 
 **小技巧**
 
@@ -47,7 +47,7 @@
 - 按住滑鼠在圖片上拖曳，可以一邊移動一邊看結果
 - 取過的顏色會留在「取色紀錄」，點一下就能叫回來
 - 手機上的結果用分頁切換：取樣、互補色、色相環、搭配、紀錄
-- 右上角可以切換語言，選過的語言下次打開會記住
+- 右上角可以切換語言（繁體中文、简体中文、English、日本語），選過的語言下次打開會記住
 
 ## 四種互補色差在哪
 
@@ -96,7 +96,7 @@ iPhone 預設的 HEIC 格式只有 Safari 能讀。用其他瀏覽器的話，�
 ├── color.js            互補色演算法（不依賴網頁，可單獨在 Node.js 使用）
 ├── i18n.js             介面文字與語言切換（繁中、简中、English、日本語）
 ├── app.js              介面邏輯：載入圖片、取色、放大鏡、顯示結果
-├── docs/               README 用的截圖
+├── docs/               README 用的截圖（每種語言一個資料夾）
 └── tests/
     ├── color.test.js   演算法測試
     └── i18n.test.js    翻譯檢查：每種語言的字串都齊全、參數一致
@@ -144,7 +144,7 @@ ColorMath.rgbToHex(ColorMath.complementRyb(rgb));
 | English | `?lang=en` |
 | 日本語 | `?lang=ja` |
 
-所有介面文字都在 `i18n.js`。要新增語言，在 `LANGS` 加一筆，再複製一份字串表翻譯即可。
+所有介面文字都在 `i18n.js`。要新增語言，在 `LANGS` 加一筆，再複製一份字串表翻譯即可。這份說明也有各語言版本：`README.zh-Hans.md`、`README.en.md`、`README.ja.md`。
 
 ### 測試
 
